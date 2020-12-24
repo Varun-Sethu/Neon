@@ -15,10 +15,11 @@ func unsetInt(slice []int, s int) []int {
 
 
 func del(slice []int, s int) []int {
-	id := 0
+	id := -1
 	for k, v := range slice {if v == s {
 		id = k; break
 	}}
+	if id == -1 {return slice}
 
 	return unsetInt(slice, id)
 }

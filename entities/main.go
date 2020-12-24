@@ -59,3 +59,6 @@ func (p *Polygon) NextTimeStep(dt float64) {
 		p.Vertices[i] = matrixRotate(p.Vertices[i], dTheta)
 	}
 }
+
+
+

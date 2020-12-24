@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"github.com/faiface/pixel"
 	"github.com/faiface/pixel/imdraw"
 	"github.com/faiface/pixel/pixelgl"
@@ -35,11 +34,15 @@ func run() {
 	poly := entities.NewPolygon([]math.Vector2D{
 		{0, 100}, {100, 100}, {100, 0}, {0,0},
 	})
+	poly.State.Mass = 10.0
+	poly.State.RotationalInertia = 2.0
 	specialPoly := entities.NewPolygon([]math.Vector2D{
 		{200, 300}, {300, 300}, {300, 200}, {200,200},
 	})
-	poly.State.AngularVelocity = math.Vector3D{Z: 1}
-
+	specialPoly.State.Mass = 50.0
+	specialPoly.State.RotationalInertia = 10.0
+	poly.State.AngularVelocity = math.Vector3D{Z: 0.3}
+	specialPoly.State.NoKinetic = true
 
 
 	p := Polygon{internal: &poly, colour: color.NRGBA{R: 255, G: 255, B: 255, A: 255}}
@@ -64,13 +67,22 @@ func run() {
 		imd.Push(pixel.V(0, win.Bounds().H()), pixel.V(win.Bounds().W(), 0))
 		imd.Rectangle(0)
 
-		fmt.Print(entities.SAT(poly, specialPoly), "\n")
+		_, manifold := physicsManager.DetectCollisions()
+
 
 
 		p.Update(dt)
 		p1.Update(dt)
 		p.Render(imd)
 		p1.Render(imd)
+
+		if manifold.ContactCount != 0 {
+			imd.Color = color.NRGBA{255, 0, 255, 255}
+			for _, p := range manifold.CollisionPoints {
+				imd.Push(pixel.V(p.X, p.Y))
+				imd.Circle(5, 0)
+			}
+		}
 
 
 		imd.Draw(intermediateCanvas)

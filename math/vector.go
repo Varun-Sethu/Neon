@@ -123,12 +123,25 @@ func (v Vector3D) Cross(k Vector3D) Vector3D {
 	}
 }
 
+// CrossMag computes the cross product but only the magnitude
+func (v Vector2D) CrossMag(k Vector2D) float64 {
+	return v.X * k.Y - v.Y * k.X
+}
+
+
 
 // Projection functions project vector v onto vector k
 func (v Vector2D) Project(k Vector2D) Vector2D {
 	return k.Scale((v.Dot(k))/
 					k.Dot(k))
 }
+// Scalar projection of two vectors
+func (v Vector2D) ScalarProject(k Vector2D) float64 {
+	return (v.Dot(k))/
+			(k.Dot(k))
+}
+
+
 
 
 

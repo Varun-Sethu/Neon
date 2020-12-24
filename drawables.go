@@ -38,6 +38,6 @@ func (p Polygon) Render(imd *imdraw.IMDraw) {
 		cp := internalToPixelVec(p.internal.State.CentroidPosition)
 		imd.Push(v.Add(cp))
 	}
-	imd.Polygon(0)
+	imd.Polygon(2.0)
 }
 
