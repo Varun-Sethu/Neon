@@ -35,25 +35,34 @@ func run() {
 		{0, 100}, {100, 100}, {100, 0}, {0,0},
 	})
 	poly.State.Mass = 10.0
-	poly.State.RotationalInertia = 2.0
+	poly.State.RotationalInertia = 5.0
 	specialPoly := entities.NewPolygon([]math.Vector2D{
 		{200, 300}, {300, 300}, {300, 200}, {200,200},
 	})
-	specialPoly.State.Mass = 50.0
-	specialPoly.State.RotationalInertia = 10.0
-	poly.State.AngularVelocity = math.Vector3D{Z: 0.3}
-	specialPoly.State.NoKinetic = true
+	specialPoly.State.Mass = 5.0
+	specialPoly.State.RotationalInertia = 2.0
+	poly.State.AngularVelocity = 0.3
+	specialPoly.State.AngularVelocity = 0.1
+
+	translationalPoly := entities.NewPolygon([]math.Vector2D{
+		{600, 300}, {700, 300}, {700, 200}, {600,200},
+	})
+	translationalPoly.State.Mass = 2.0
+	translationalPoly.State.RotationalInertia = 1.0
+	translationalPoly.State.Velocity = math.Vector2D{X: -1.0}
 
 
 	p := Polygon{internal: &poly, colour: color.NRGBA{R: 255, G: 255, B: 255, A: 255}}
 	p1 := Polygon{internal: &specialPoly, colour: color.NRGBA{R: 255, G: 255, B: 255, A: 255}}
+	p2 := Polygon{internal: &translationalPoly, colour: color.NRGBA{R: 255, G: 255, B: 255, A: 255}}
 
 
-	poly.State.Velocity = math.Vector2D{X: 50, Y: 50}
+	poly.State.Velocity = math.Vector2D{X: 3, Y: 2}
 	physicsManager := engine.NewPhysicsManager()
 
 	physicsManager = physicsManager.BeginTracking(&poly)
 	physicsManager = physicsManager.BeginTracking(&specialPoly)
+	physicsManager = physicsManager.BeginTracking(&translationalPoly)
 
 
 	start := time.Now()
@@ -69,13 +78,6 @@ func run() {
 
 		_, manifold := physicsManager.DetectCollisions()
 
-
-
-		p.Update(dt)
-		p1.Update(dt)
-		p.Render(imd)
-		p1.Render(imd)
-
 		if manifold.ContactCount != 0 {
 			imd.Color = color.NRGBA{255, 0, 255, 255}
 			for _, p := range manifold.CollisionPoints {
@@ -83,6 +85,16 @@ func run() {
 				imd.Circle(5, 0)
 			}
 		}
+
+
+		p.Update(dt)
+		p1.Update(dt)
+		p2.Update(dt)
+		p.Render(imd)
+		p1.Render(imd)
+		p2.Render(imd)
+
+
 
 
 		imd.Draw(intermediateCanvas)

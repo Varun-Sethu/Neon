@@ -128,6 +128,21 @@ func (v Vector2D) CrossMag(k Vector2D) float64 {
 	return v.X * k.Y - v.Y * k.X
 }
 
+// Extension of cross product to the special case of a purely 3d vector cross a 2d one,  purely 3d vec points only in the z direction
+func (v Vector2D) CrossWithUpwards(upwards float64) Vector2D {
+	return Vector2D{
+		X: upwards * v.Y,
+		Y: -upwards * v.X,
+	}
+}
+
+// Extension of cross product to the special case of a purely 3d vector cross a 2d one, purely 3d vec points only in the z direction
+func (v Vector2D) CrossUpwardsWithVec(upwards float64) Vector2D {
+	return Vector2D{
+		X: -upwards * v.Y,
+		Y: upwards * v.X,
+	}
+}
 
 
 // Projection functions project vector v onto vector k

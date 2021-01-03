@@ -36,7 +36,7 @@ func (receiver PhysicsManager) DetectCollisions() (bool, ContactManifold) {
 			if collides, manifold := DetermineCollision(polyA, polyB); collides {
 				reference_frame, incident_frame := a, b
 				if reflect.DeepEqual(polyB, manifold.ReferenceFrame) {reference_frame, incident_frame = b, a} // TODO: you know this shouldn't even be a thing....
-				manifold.ResolveCollision(incident_frame, reference_frame, 1.0)
+				manifold.ResolveCollision(incident_frame, reference_frame)
 				return true, manifold
 			}
 		}

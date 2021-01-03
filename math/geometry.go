@@ -48,17 +48,20 @@ func ComputeOutwardsNormal(A, B, C Vector2D) Vector2D {
 
 
 // LiesBehindLine produces all points that lie behind a certain line given an oriented normal vector
-func LiesBehindLine(points []Vector2D, line [2]Vector2D, axis Vector2D) []Vector2D {
+func LiesBehindLine(points []Vector2D, line [2]Vector2D, axis Vector2D) ([]Vector2D, []float64) {
 	axis = axis.Normalise()
 	valid := []Vector2D{}
+	depths := []float64{}
 
 	for _, p := range points {
-		if p.Sub(line[0]).Dot(axis) <= 0 {
+		depth := p.Sub(line[0]).Dot(axis)
+		if  depth <= 0 {
 			valid = append(valid, p)
+			depths = append(depths, math.Abs(depth))
 		}
 	}
 
-	return valid
+	return valid, depths
 }
 
 
@@ -74,18 +77,26 @@ func IntervalRegionIntersection(interval, region_boundary [2]Vector2D, region_or
 
 	// if the interval intersects the region_boundary then we must replace one end of the interval with the intersection
 	if region_interval_intersection != ZeroVec2D {
-		new_interval := LiesBehindLine(interval[:], region_boundary, region_orientation.Scale(-1.0))
+		new_interval, _ := LiesBehindLine(interval[:], region_boundary, region_orientation.Scale(-1.0))
 		copy(output[:], append(new_interval, region_interval_intersection))
 		return output
 	}
 
 	// otherwise just return the interval IFF it is valid
-	if len(LiesBehindLine(interval[:], region_boundary, region_orientation.Scale(-1.0))) == 2 {
+	if e, _ := LiesBehindLine(interval[:], region_boundary, region_orientation.Scale(-1.0)); len(e) == 2 {
 		return interval
 	} else { return [2]Vector2D{ZeroVec2D, ZeroVec2D} }
 }
 
 
+
+
+
+// Reasonably simple method, just projects a point onto a line, primarily used within the collision solver
+func ProjectPointOntoLine(point Vector2D, line [2]Vector2D) Vector2D {
+	projection := point.Project(line[1].Sub(line[0]))
+	return line[0].Add(projection)
+}
 
 
 

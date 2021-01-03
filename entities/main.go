@@ -2,6 +2,7 @@ package entities
 
 import (
 	"neon/math"
+	"neon/units"
 )
 import gMath "math"
 
@@ -9,7 +10,7 @@ import gMath "math"
 type EntityState struct {
 	// Motion quantities
 	Velocity 			math.Vector2D
-	AngularVelocity 	math.Vector3D // Angular velocity is of the form: (0, 0, w)
+	AngularVelocity 	float64 // Angular velocity is of the form: (0, 0, w)
 	CentroidPosition	math.Vector2D
 
 
@@ -30,9 +31,10 @@ func (e *EntityState) ApplyImpulse(impulse math.Vector2D, applicationPoint math.
 
 	// Actually apply the impulse
 	e.Velocity = e.Velocity.Add(impulse.Scale(1.0/e.Mass))
-	e.AngularVelocity = e.AngularVelocity.Add(
-		impulse.Cross(
-			applicationPoint.Sub(e.CentroidPosition)).Scale(1.0/e.RotationalInertia))
+
+	if applicationPoint != math.ZeroVec2D {
+		e.AngularVelocity += applicationPoint.Sub(e.CentroidPosition).Normalise().CrossMag(impulse.Normalise()) * impulse.Length() / e.RotationalInertia
+	}
 }
 
 
@@ -43,7 +45,7 @@ func (p *Polygon) NextTimeStep(dt float64) {
 	e := &p.State
 	if e.NoKinetic {return}
 
-	e.CentroidPosition = e.CentroidPosition.Add(e.Velocity.Scale(dt))
+	e.CentroidPosition = e.CentroidPosition.Add(e.Velocity.Scale(units.Metre).Scale(dt))
 
 
 	// Simple rotational utility
@@ -54,7 +56,7 @@ func (p *Polygon) NextTimeStep(dt float64) {
 		}
 	}
 	// Compute the actual rotation of the entity
-	dTheta := dt * e.AngularVelocity.Length()
+	dTheta := dt * e.AngularVelocity
 	for i, _ := range p.Vertices {
 		p.Vertices[i] = matrixRotate(p.Vertices[i], dTheta)
 	}

@@ -157,7 +157,7 @@ func Clip(p Polygon, line [2]math.Vector2D, lineNormal math.Vector2D) Polygon {
 
 
 
-// satSinglePolygon just checks if polyA intersects polyB
+// satSinglePolygon just checks if polyB intersects polyA
 func satSinglePolygon(polyA Polygon, polyB Polygon) math.Vector2D {
 	mtv := math.BigVec2D
 
@@ -177,7 +177,14 @@ func satSinglePolygon(polyA Polygon, polyB Polygon) math.Vector2D {
 			}
 		}
 	}
-	return mtv
+	// Polygons with parallel edges have an issue with computing the same normal axis multiple times, the inevitable consequence of this is that sometimes the MTV faces TOWARDS polygon A instead of away
+	// to resolve this we just need to check that the MTV points away and flip it if it doesnt, if the dot product of the normal and the separation vector is positive then it points towards it
+	flip := mtv.Dot(polyB.State.CentroidPosition.Sub(polyA.State.CentroidPosition)) < 0
+	if flip {
+		return mtv.Scale(-1.0)
+	} else {
+		return mtv
+	}
 }
 
 
@@ -197,15 +204,8 @@ func MapToWorldSpace(p Polygon) Polygon {
 
 
 
-// utility constants for SAT
-const (
-	IsPolyAFaceNormal = true
-	IsPolyBFaceNormal = false
-)
 
 // SAT determines if two polygons are intersecting and computes the corresponding MTV
-// also returns weather the MTV is an edge normal for polygon A or B.... True: Edge normal for A, False: Edge normal for B
-// Note that the boolean tells us if the mtv points from A to B or from B to A
 // Note that the MTV ALWAYS POINTS FROM A TO B
 func SAT(polyA Polygon, polyB Polygon) math.Vector2D {
 	// Get both the potential minimum translation vectors
@@ -220,7 +220,8 @@ func SAT(polyA Polygon, polyB Polygon) math.Vector2D {
 	} else {
 		if mtv_for_B.Length() <= mtv_for_A.Length() {
 			return mtv_for_B
-		} else {return mtv_for_A.Scale(-1.0)}
+		} else {
+			return mtv_for_A.Scale(-1.0)}
 	}
 }
 

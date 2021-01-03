@@ -5,6 +5,7 @@ Neon is meant to be a simple and easy to use physics engine for Golang.
 ### Todo
 
 Below is a small list of stuff currently in the engine and features intended to be implemented
+ - [ ] Make code "not ugly and hacky" :( 
  - [x] Concave Polygon Mesh collider
  - [x] Concave Polygon Collision detection
  - [x] Concave Polygon Collision resolution
