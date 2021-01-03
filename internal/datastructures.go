@@ -1,4 +1,4 @@
 package internal
 
 
-// Implementation of common and elementary datastructures
+// Implementation of common and elementary datastructures eg... Quadtrees :)

@@ -17,7 +17,7 @@ import (
 
 
 // GetSupportingPoint returns the supporting point of a polygon along a specific axis
-func GetSupportingPoint(polygon Polygon, axis math.Vector2D) (math.Vector2D, int) {
+func (polygon *Polygon) GetSupportingPoint(axis math.Vector2D) (math.Vector2D, int) {
 	currentMaxProj := gmath.Inf(-1)
 	bestVertex	   := math.ZeroVec2D
 	vertexID	   := 0
@@ -36,9 +36,9 @@ func GetSupportingPoint(polygon Polygon, axis math.Vector2D) (math.Vector2D, int
 
 
 // DetermineSupportingEdge determines the edge furthest along a specific axis, in essence the specific edge, also returns how "parallel" the edge's normal is with the provided normal
-func DetermineSupportingEdge(poly Polygon, axis math.Vector2D) ([]int, float64) {
+func (poly *Polygon) DetermineSupportingEdge(axis math.Vector2D) ([]int, float64) {
 
-	_, vertexID := GetSupportingPoint(poly, axis)
+	_, vertexID := poly.GetSupportingPoint(axis)
 	v			:= poly.Vertices[vertexID]
 	A			:= poly.Vertices[poly.Edges[vertexID][0]]; normalA := math.ComputeOutwardsNormal(A, v, poly.State.CentroidPosition)
 	B			:= poly.Vertices[poly.Edges[vertexID][1]]; normalB := math.ComputeOutwardsNormal(B, v, poly.State.CentroidPosition)
@@ -55,10 +55,10 @@ func DetermineSupportingEdge(poly Polygon, axis math.Vector2D) ([]int, float64) 
 
 // PolyVerticesOutside takes a "line" (2 points) and a normal and returns all points of the polygon that lie outside this line, in the direction anti-parallel to the normal
 // Note: the function assumes that the vertices are in the "world frame"
-func PolyVerticesOutside(polygon Polygon, line [2]math.Vector2D, normal math.Vector2D) []int {
+func (poly *Polygon) PolyVerticesOutside(line [2]math.Vector2D, normal math.Vector2D) []int {
 	var outside []int
 
-	for i, v := range polygon.Vertices {
+	for i, v := range poly.Vertices {
 		// Just ensure that you determine the world position of the vertex
 		if v.Sub(line[0]).Dot(normal) < 0 {
 			outside = append(outside, i)
@@ -72,11 +72,11 @@ func PolyVerticesOutside(polygon Polygon, line [2]math.Vector2D, normal math.Vec
 
 // AxisProjection returns the projection interval of a polygon onto an axis
 // Note that the projections are in "world coordinates"
-func AxisProjection(polygon Polygon, axis math.Vector2D) []float64 {
+func (polygon *Polygon) AxisProjection(axis math.Vector2D) []float64 {
 	// We need to first determine the supporting points along the axis perpendicular to the provided axis
 	axis = axis.Normalise()
-	sup_left, _  := GetSupportingPoint(polygon, axis)
-	sup_right, _ := GetSupportingPoint(polygon, axis.Scale(-1.0))
+	sup_left, _  := polygon.GetSupportingPoint(axis)
+	sup_right, _ := polygon.GetSupportingPoint(axis.Scale(-1.0))
 
 	interval := []float64{
 		sup_left.ScalarProject(axis),
@@ -102,59 +102,6 @@ func projections_overlap(projection_a, projection_b []float64) (bool, float64) {
 
 
 
-// Clip clips a polygon against a line
-// Note that the the associated normal vector with the line dictates how we clip the polygon
-func Clip(p Polygon, line [2]math.Vector2D, lineNormal math.Vector2D) Polygon {
-	newPolygon := MapToWorldSpace(p)
-
-	// Determine all points that lie outside the line region
-	outsidePoints := PolyVerticesOutside(p, line, lineNormal)
-	if len(outsidePoints) == 0 {return  newPolygon.RefreshPolygon()}
-
-	// A polygon can only intersect a line twice, once we have computed both intersecting edges we next need to connect up those intersecting edges
-	intersections := []int{}
-
-	// stage involves computing all the intersecting points
-	for _, point := range outsidePoints {
-		// Check intersections from outgoing edges, if the intersection returned by the math function is a zero vec that implies there are no intersections
-		for _, connectedVertex := range newPolygon.Edges[point] {
-
-			intersection_with_poly := math.LineIntervalIntersection(
-				[2]math.Vector2D{
-					p.Vertices[point], p.Vertices[connectedVertex],
-				}, line)
-
-			// If an intersection exists just chomp off the edge and make the new edge: connectedVertex -> Intersection
-			if intersection_with_poly != math.ZeroVec2D {
-				var id int
-				newPolygon, id = newPolygon.addVertex(intersection_with_poly)
-				intersections = append(intersections, id)
-				newPolygon.Edges[connectedVertex] = swap(newPolygon.Edges[connectedVertex], point, id)
-				newPolygon.Edges[id] = append(newPolygon.Edges[id], connectedVertex)
-			}
-		}
-	}
-
-
-	// if there were 2 intersections with the polygon, we just need to connect them up
-	if len(intersections) == 2 {
-		// Now we just need to connect up the two edges
-		p.Edges[intersections[0]] = append(p.Edges[intersections[0]], intersections[1])
-		p.Edges[intersections[1]] = append(p.Edges[intersections[1]], intersections[0])
-	}
-
-
-
-	// delete all the outside points
-	newPolygon = newPolygon.deleteVertices(outsidePoints)
-	return newPolygon.RefreshPolygon()
-}
-
-
-
-
-
-
 
 
 // satSinglePolygon just checks if polyB intersects polyA
@@ -167,8 +114,8 @@ func satSinglePolygon(polyA Polygon, polyB Polygon) math.Vector2D {
 			worldEdgeV 	:= polyA.Vertices[edge].Add(polyA.State.CentroidPosition) // worldEdgeV is the world coordinates of the other vertex that defines this edge
 			normal		:= math.ComputeOutwardsNormal(worldEdgeV, worldVertex, polyA.State.CentroidPosition) // normal is just the normal vector associated with this edge
 
-			projected_axis_polyB := AxisProjection(polyB, normal)
-			projected_axis_polyA := AxisProjection(polyA, normal)
+			projected_axis_polyB := polyB.AxisProjection(normal)
+			projected_axis_polyA := polyA.AxisProjection(normal)
 
 			if intersects, overlap := projections_overlap(projected_axis_polyA, projected_axis_polyB); !intersects {
 				return math.ZeroVec2D
@@ -191,12 +138,16 @@ func satSinglePolygon(polyA Polygon, polyB Polygon) math.Vector2D {
 
 
 // MapToWorldSpace takes a polygon whose vertices internally are in the COM frame and converts them to the "world frame"
-func MapToWorldSpace(p Polygon) Polygon {
+func (p *Polygon) MapToWorldSpace()  {
 	for vertex_id, _ := range p.Vertices {
 		p.Vertices[vertex_id] = p.Vertices[vertex_id].Add(p.State.CentroidPosition)
 	}
-
-	return p
+}
+// If a polygon is in world space eg. all the coordinates are relative to the global origin then this just maps them all out of it
+func (p *Polygon) MapOutofWorldSpace() {
+	for vertex_id, _ := range p.Vertices {
+		p.Vertices[vertex_id] = p.Vertices[vertex_id].Sub(p.State.CentroidPosition)
+	}
 }
 
 

@@ -1,8 +1,8 @@
 package entities
 
 import (
+	"neon/internal/units"
 	"neon/math"
-	"neon/units"
 )
 import gMath "math"
 

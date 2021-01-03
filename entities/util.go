@@ -2,6 +2,9 @@ package entities
 
 import "neon/math"
 
+
+// simple utility functions
+
 func unsetVec(slice []math.Vector2D, s int) []math.Vector2D {
 	return append(slice[:s], slice[s+1:]...)
 }
