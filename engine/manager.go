@@ -8,6 +8,7 @@ import (
 // The manager furthermore should resolve these collisions
 type PhysicsManager struct {
 	trackingEntities	[]*entities.Polygon
+	collisionCallbacks	[]func(manifold ContactManifold)
 }
 
 
@@ -24,6 +25,12 @@ func (receiver *PhysicsManager) BeginTracking(polys ...*entities.Polygon) {
 	receiver.trackingEntities = append(receiver.trackingEntities, polys...)
 }
 
+// Adds a callback function to the set of collision callback functions if a collision ever does occur
+func (receiver *PhysicsManager) AddCallback(callbacks ...func(manifold ContactManifold)) {
+	receiver.collisionCallbacks = append(receiver.collisionCallbacks, callbacks...)
+}
+
+
 
 // DetectCollisions identifies if any collisions are present and resolves them if they are
 func (receiver PhysicsManager) DetectCollisions() {
@@ -31,6 +38,11 @@ func (receiver PhysicsManager) DetectCollisions() {
 		for _, b := range receiver.trackingEntities[i+1:] {
 			if collides, manifold := DetermineCollision(a, b); collides {
 				manifold.ResolveCollision()
+
+				// Perform the callback operations
+				for _, callback := range receiver.collisionCallbacks {
+					callback(manifold)
+				}
 			}
 		}
 	}
