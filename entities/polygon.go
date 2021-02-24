@@ -54,10 +54,10 @@ func NewPolygon(vertices []math.Vector2D) Polygon {
 
 
 // Returns the endpoints of the interval defined by an edge
-func (poly *Polygon) GetEdgeCoordinates(face []int) [2]math.Vector2D {
+func (polygon *Polygon) GetEdgeCoordinates(face []int) [2]math.Vector2D {
 	return [2]math.Vector2D{
-		poly.Vertices[face[0]].Add(poly.State.CentroidPosition),
-		poly.Vertices[face[1]].Add(poly.State.CentroidPosition),
+		polygon.Vertices[face[0]].Add(polygon.State.CentroidPosition),
+		polygon.Vertices[face[1]].Add(polygon.State.CentroidPosition),
 	}
 }
 

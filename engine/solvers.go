@@ -46,17 +46,20 @@ func (manifold *ContactManifold) resolvePointCollision(incidentFrame, referenceF
 	mI, iI := retrievePhysicalData(incidentFrame)
 
 
+
 	// Compute the velocities at the point of collision
 	vPi := incidentFrame.State.Velocity.Add(rI.CrossUpwardsWithVec(incidentFrame.State.AngularVelocity))
 	vPr := referenceFrame.State.Velocity.Add(rR.CrossUpwardsWithVec(referenceFrame.State.AngularVelocity))
 
 	separationVelocity := vPi.Sub(vPr).Dot(collisionNormal)
+	if separationVelocity > 0 {
+		return
+	}
 
 	impulse := -(2.0) * separationVelocity /
 		((1.0/mR + 1.0/mI) +
 			math.Pow(rI.CrossMag(collisionNormal), 2)/iI +
 			math.Pow(rR.CrossMag(collisionNormal), 2)/iR)
-
 
 	incidentFrame.State.ApplyImpulse(collisionNormal.Scale(impulse), pIncident)
 	referenceFrame.State.ApplyImpulse(collisionNormal.Scale(-impulse), pReference)
@@ -108,7 +111,7 @@ func retrievePhysicalData(poly *entities.Polygon) (float64, float64) {
 
 // function that just processes the manifold
 func (manifold* ContactManifold)  processManifold() {
-	if manifold.ContactCount == 1 || math.Abs(manifold.ContactDepths[0] - manifold.ContactDepths[1]) < 0.4 { // magic numbers :)
+	if manifold.ContactCount == 1 || math.Abs(manifold.ContactDepths[0] - manifold.ContactDepths[1]) > 0.2 { // magic numbers :)
 		return
 	}
 

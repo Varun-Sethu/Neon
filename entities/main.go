@@ -1,12 +1,24 @@
 package entities
 
 import (
+	"neon/entities/meshes"
 	"neon/internal/units"
 	"neon/math"
 )
 import gMath "math"
 
-// Refers the the current state of an entity
+
+
+
+
+// Entity is simply just a 2d object that the physics engine can act on
+type Entity struct {
+	State EntityState
+	Mesh  meshes.Mesh
+}
+
+
+// Refers the the current state of an entity, important for physical calculations
 type EntityState struct {
 	// Motion quantities
 	Velocity 			math.Vector2D
@@ -20,6 +32,57 @@ type EntityState struct {
 	// Toggleable Quantity
 	NoKinetic			bool
 }
+
+
+
+
+
+// NewEntity creates a completely brand new entity given a meshType and the set of information that defines that mesh
+func (entity *Entity) NewEntity(meshType meshes.MeshType, meshDefinition []math.Vector2D) {
+	switch meshType {
+	case meshes.MeshPolygon:
+		break
+	case meshes.MeshCircle:
+		break
+	}
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -40,9 +103,9 @@ func (e *EntityState) ApplyImpulse(impulse math.Vector2D, applicationPoint math.
 
 
 // NextTimeStep computes the next infinitesimal timestamp
-func (p *Polygon) NextTimeStep(dt float64) {
+func (polygon *Polygon) NextTimeStep(dt float64) {
 	// Update the actual position
-	e := &p.State
+	e := &polygon.State
 	if e.NoKinetic {return}
 
 	e.CentroidPosition = e.CentroidPosition.Add(e.Velocity.Scale(units.Metre).Scale(dt))
@@ -57,8 +120,8 @@ func (p *Polygon) NextTimeStep(dt float64) {
 	}
 	// Compute the actual rotation of the entity
 	dTheta := dt * e.AngularVelocity
-	for i, _ := range p.Vertices {
-		p.Vertices[i] = matrixRotate(p.Vertices[i], dTheta)
+	for i, _ := range polygon.Vertices {
+		polygon.Vertices[i] = matrixRotate(polygon.Vertices[i], dTheta)
 	}
 }
 

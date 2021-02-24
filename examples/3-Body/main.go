@@ -59,7 +59,7 @@ func run() {
 	win.SetSmooth(true)
 	viewMatrix := pixel.IM.Moved(win.Bounds().Center())
 	intermediateCanvas := pixelgl.NewCanvas(win.Bounds())
-
+	imd := imdraw.New(nil)
 
 
 	// define our smol polygons
@@ -73,10 +73,20 @@ func run() {
 	physicsManager := engine.NewPhysicsManager()
 	physicsManager.BeginTracking(poly, specialPoly, translationalPoly)
 
+	// Callback for just drawing in the collision points
+	physicsManager.AddCallback(func(manifold engine.ContactManifold) {
+		if manifold.ContactCount != 0 {
+			imd.Color = color.NRGBA{255, 0, 255, 255}
+			for _, p := range manifold.CollisionPoints {
+				imd.Push(pixel.V(p.X, p.Y))
+				imd.Circle(5, 0)
+			}
+		}
+	})
+
 
 	start := time.Now()
 	for !win.Closed() {
-		imd := imdraw.New(nil)
 		dt := time.Now().Sub(start).Seconds()
 		start = time.Now()
 
@@ -93,8 +103,6 @@ func run() {
 		p.Render(imd)
 		p1.Render(imd)
 		p2.Render(imd)
-
-
 
 
 		imd.Draw(intermediateCanvas)

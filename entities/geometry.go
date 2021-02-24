@@ -36,18 +36,18 @@ func (polygon *Polygon) GetSupportingPoint(axis math.Vector2D) (math.Vector2D, i
 
 
 // DetermineSupportingEdge determines the edge furthest along a specific axis, in essence the specific edge, also returns how "parallel" the edge's normal is with the provided normal
-func (poly *Polygon) DetermineSupportingEdge(axis math.Vector2D) ([]int, float64) {
+func (polygon *Polygon) DetermineSupportingEdge(axis math.Vector2D) ([]int, float64) {
 
-	_, vertexID := poly.GetSupportingPoint(axis)
-	v			:= poly.Vertices[vertexID]
-	A			:= poly.Vertices[poly.Edges[vertexID][0]]; normalA := math.ComputeOutwardsNormal(A, v, poly.State.CentroidPosition)
-	B			:= poly.Vertices[poly.Edges[vertexID][1]]; normalB := math.ComputeOutwardsNormal(B, v, poly.State.CentroidPosition)
+	_, vertexID := polygon.GetSupportingPoint(axis)
+	v			:= polygon.Vertices[vertexID]
+	A			:= polygon.Vertices[polygon.Edges[vertexID][0]]; normalA := math.ComputeOutwardsNormal(A, v, polygon.State.CentroidPosition)
+	B			:= polygon.Vertices[polygon.Edges[vertexID][1]]; normalB := math.ComputeOutwardsNormal(B, v, polygon.State.CentroidPosition)
 
 	// There are two possible other vertices that can connect to this one, we determine which one is significant by comparing dot products
 	if gmath.Abs(normalA.Dot(axis)) >= gmath.Abs(normalB.Dot(axis)) {
-		return []int{vertexID, poly.Edges[vertexID][0]}, gmath.Abs(normalA.Dot(axis))
+		return []int{vertexID, polygon.Edges[vertexID][0]}, gmath.Abs(normalA.Dot(axis))
 	}
-	return []int{vertexID, poly.Edges[vertexID][1]}, gmath.Abs(normalB.Dot(axis))
+	return []int{vertexID, polygon.Edges[vertexID][1]}, gmath.Abs(normalB.Dot(axis))
 }
 
 
@@ -55,10 +55,10 @@ func (poly *Polygon) DetermineSupportingEdge(axis math.Vector2D) ([]int, float64
 
 // PolyVerticesOutside takes a "line" (2 points) and a normal and returns all points of the polygon that lie outside this line, in the direction anti-parallel to the normal
 // Note: the function assumes that the vertices are in the "world frame"
-func (poly *Polygon) PolyVerticesOutside(line [2]math.Vector2D, normal math.Vector2D) []int {
+func (polygon *Polygon) PolyVerticesOutside(line [2]math.Vector2D, normal math.Vector2D) []int {
 	var outside []int
 
-	for i, v := range poly.Vertices {
+	for i, v := range polygon.Vertices {
 		// Just ensure that you determine the world position of the vertex
 		if v.Sub(line[0]).Dot(normal) < 0 {
 			outside = append(outside, i)
@@ -75,26 +75,25 @@ func (poly *Polygon) PolyVerticesOutside(line [2]math.Vector2D, normal math.Vect
 func (polygon *Polygon) AxisProjection(axis math.Vector2D) []float64 {
 	// We need to first determine the supporting points along the axis perpendicular to the provided axis
 	axis = axis.Normalise()
-	sup_left, _  := polygon.GetSupportingPoint(axis)
-	sup_right, _ := polygon.GetSupportingPoint(axis.Scale(-1.0))
+	supLeft, _  := polygon.GetSupportingPoint(axis)
+	supRight, _ := polygon.GetSupportingPoint(axis.Scale(-1.0))
 
 	interval := []float64{
-		sup_left.ScalarProject(axis),
-		sup_right.ScalarProject(axis),
+		supLeft.ScalarProject(axis),
+		supRight.ScalarProject(axis),
 	}
 	sort.Float64s(interval)
 	return interval
 }
 
-
-// projections_overlap determines if two projections onto an axis overlap as well as the degree of overlap
-func projections_overlap(projection_a, projection_b []float64) (bool, float64) {
+// projectionsOverlap determines if two projections onto an axis overlap as well as the degree of overlap
+func projectionsOverlap(projectionA, projectionB []float64) (bool, float64) {
 	// evidently there is no overlap
-	if projection_a[1] < projection_b[0] || projection_b[1] < projection_a[0] {
+	if projectionA[1] < projectionB[0] || projectionB[1] < projectionA[0] {
 		return false, 0.0
 	}
 
-	return true, gmath.Min(projection_a[1], projection_b[1]) - gmath.Max(projection_a[0], projection_b[0])
+	return true, gmath.Min(projectionA[1], projectionB[1]) - gmath.Max(projectionA[0], projectionB[0])
 }
 
 
@@ -114,10 +113,10 @@ func satSinglePolygon(polyA Polygon, polyB Polygon) math.Vector2D {
 			worldEdgeV 	:= polyA.Vertices[edge].Add(polyA.State.CentroidPosition) // worldEdgeV is the world coordinates of the other vertex that defines this edge
 			normal		:= math.ComputeOutwardsNormal(worldEdgeV, worldVertex, polyA.State.CentroidPosition) // normal is just the normal vector associated with this edge
 
-			projected_axis_polyB := polyB.AxisProjection(normal)
-			projected_axis_polyA := polyA.AxisProjection(normal)
+			projectedAxisPolyb := polyB.AxisProjection(normal)
+			projectedAxisPolya := polyA.AxisProjection(normal)
 
-			if intersects, overlap := projections_overlap(projected_axis_polyA, projected_axis_polyB); !intersects {
+			if intersects, overlap := projectionsOverlap(projectedAxisPolya, projectedAxisPolyb); !intersects {
 				return math.ZeroVec2D
 			} else {
 				mtv = math.Min(mtv, normal.Scale(overlap))
@@ -138,15 +137,15 @@ func satSinglePolygon(polyA Polygon, polyB Polygon) math.Vector2D {
 
 
 // MapToWorldSpace takes a polygon whose vertices internally are in the COM frame and converts them to the "world frame"
-func (p *Polygon) MapToWorldSpace()  {
-	for vertex_id, _ := range p.Vertices {
-		p.Vertices[vertex_id] = p.Vertices[vertex_id].Add(p.State.CentroidPosition)
+func (polygon *Polygon) MapToWorldSpace()  {
+	for vertexId, _ := range polygon.Vertices {
+		polygon.Vertices[vertexId] = polygon.Vertices[vertexId].Add(polygon.State.CentroidPosition)
 	}
 }
 // If a polygon is in world space eg. all the coordinates are relative to the global origin then this just maps them all out of it
-func (p *Polygon) MapOutofWorldSpace() {
-	for vertex_id, _ := range p.Vertices {
-		p.Vertices[vertex_id] = p.Vertices[vertex_id].Sub(p.State.CentroidPosition)
+func (polygon *Polygon) MapOutofWorldSpace() {
+	for vertexId, _ := range polygon.Vertices {
+		polygon.Vertices[vertexId] = polygon.Vertices[vertexId].Sub(polygon.State.CentroidPosition)
 	}
 }
 
@@ -160,19 +159,19 @@ func (p *Polygon) MapOutofWorldSpace() {
 // Note that the MTV ALWAYS POINTS FROM A TO B
 func SAT(polyA Polygon, polyB Polygon) math.Vector2D {
 	// Get both the potential minimum translation vectors
-	mtv_for_B := satSinglePolygon(polyA, polyB)
-	mtv_for_A := satSinglePolygon(polyB, polyA)
+	mtvForB := satSinglePolygon(polyA, polyB)
+	mtvForA := satSinglePolygon(polyB, polyA)
 
 
 	// Actually figure out which one to return
 	// looks like there is a separating axis, hence: no collision
-	if mtv_for_B == math.ZeroVec2D || mtv_for_A == math.ZeroVec2D {
+	if mtvForB == math.ZeroVec2D || mtvForA == math.ZeroVec2D {
 		return math.ZeroVec2D
 	} else {
-		if mtv_for_B.Length() <= mtv_for_A.Length() {
-			return mtv_for_B
+		if mtvForB.Length() <= mtvForA.Length() {
+			return mtvForB
 		} else {
-			return mtv_for_A.Scale(-1.0)}
+			return mtvForA.Scale(-1.0)}
 	}
 }
 
