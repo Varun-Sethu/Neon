@@ -1,8 +1,8 @@
 package main
 
 import (
+	"Neon/engine/math"
 	"Neon/entities"
-	"Neon/math"
 	"image/color"
 
 	"github.com/faiface/pixel"

@@ -1,7 +1,7 @@
 package entities
 
 import (
-	"Neon/math"
+	"Neon/engine/math"
 )
 
 // Polygon data structure represents a polygon internally using a graph

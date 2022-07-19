@@ -1,8 +1,8 @@
 package engine
 
 import (
+	"Neon/engine/math"
 	"Neon/entities"
-	"Neon/math"
 )
 
 // This is completely responsible for determining if two objects collide and computing a collision manifold for them

@@ -2,9 +2,13 @@ package main
 
 import (
 	"Neon/engine"
+	"Neon/engine/math"
 	"Neon/entities"
-	"Neon/math"
+	"flag"
 	"image/color"
+	"log"
+	"os"
+	"runtime/pprof"
 	"time"
 
 	"github.com/faiface/pixel"
@@ -35,8 +39,8 @@ func definePolygons() (*entities.Polygon, *entities.Polygon, *entities.Polygon) 
 
 	translationalPoly.State.Mass = 2.0
 	translationalPoly.State.RotationalInertia = 1.0
-	translationalPoly.State.Velocity = math.Vector2D{X: -1.0}
-	poly.State.Velocity = math.Vector2D{X: 3, Y: 2}
+	translationalPoly.State.Velocity = math.Vector2D{X: -0.5}
+	poly.State.Velocity = math.Vector2D{X: 1, Y: 1}
 
 	return &poly, &specialPoly, &translationalPoly // be freeeeeee to the heap
 }
@@ -45,7 +49,7 @@ func run() {
 	win, err := pixelgl.NewWindow(pixelgl.WindowConfig{
 		Bounds: pixel.R(0, 0, 1000, 600),
 		Title:  "Neon Spin",
-		VSync:  false,
+		VSync:  true,
 	})
 	if err != nil {
 		panic(err)
@@ -80,7 +84,7 @@ func run() {
 
 	start := time.Now()
 	for !win.Closed() {
-		dt := time.Now().Sub(start).Seconds()
+		dt := time.Since(start).Seconds()
 		start = time.Now()
 
 		imd.Color = color.NRGBA{R: 0, G: 13, B: 28, A: 255}
@@ -88,7 +92,6 @@ func run() {
 		imd.Rectangle(0)
 
 		// core physics
-		physicsManager.Loop()
 		physicsManager.NextTimeStep(dt)
 
 		p.Render(imd)
@@ -101,6 +104,18 @@ func run() {
 	}
 }
 
+var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
+
 func main() {
+	flag.Parse()
+	if *cpuprofile != "" {
+		f, err := os.Create(*cpuprofile)
+		if err != nil {
+			log.Fatal(err)
+		}
+		pprof.StartCPUProfile(f)
+		defer pprof.StopCPUProfile()
+	}
+
 	pixelgl.Run(run)
 }

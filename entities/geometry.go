@@ -1,7 +1,7 @@
 package entities
 
 import (
-	"Neon/math"
+	"Neon/engine/math"
 	gmath "math"
 	"sort"
 )

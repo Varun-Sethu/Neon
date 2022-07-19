@@ -43,14 +43,10 @@ func (receiver PhysicsManager) DetectCollisions() {
 	}
 }
 
-// Loop is the main loop for the manager, when this method is invoked then the manager begins to check for collisions and apply any other important physics stuff
-func (receiver *PhysicsManager) Loop() {
-	receiver.DetectCollisions()
-}
-
 // NextTimeStep just progresses everything to the next timestep, just numerical integration.... Note: Every entitiy already has methods for progressing its state
 func (receiver *PhysicsManager) NextTimeStep(dt float64) {
 	for _, e := range receiver.trackingEntities {
 		e.NextTimeStep(dt)
 	}
+	receiver.DetectCollisions()
 }

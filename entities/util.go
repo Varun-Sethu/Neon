@@ -1,6 +1,6 @@
 package entities
 
-import "Neon/math"
+import "Neon/engine/math"
 
 // simple utility functions
 

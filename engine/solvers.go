@@ -1,9 +1,8 @@
 package engine
 
 import (
+	vmath "Neon/engine/math"
 	"Neon/entities"
-	"Neon/internal/units"
-	vmath "Neon/math"
 	"math"
 )
 
@@ -16,6 +15,7 @@ func (manifold ContactManifold) ResolveCollision() {
 
 	// First statically resolve the collision
 	incidentFrame.State.CentroidPosition = incidentFrame.State.CentroidPosition.Add(manifold.MTV)
+	referenceFrame.State.CentroidPosition = referenceFrame.State.CentroidPosition.Add(manifold.MTV.Scale(-1.0))
 
 	// Then compute impulses
 	if manifold.ContactCount == 1 {
@@ -33,7 +33,7 @@ func (manifold *ContactManifold) resolvePointCollision(incidentFrame, referenceF
 	pIncident := manifold.CollisionPoints[0]
 	pReference := referenceCollisionPoints[0]
 
-	rI, rR := pIncident.Sub(incidentFrame.State.CentroidPosition).Scale(1.0/units.Metre), pReference.Sub(referenceFrame.State.CentroidPosition).Scale(1.0/units.Metre)
+	rI, rR := pIncident.Sub(incidentFrame.State.CentroidPosition).Scale(1.0/vmath.Metre), pReference.Sub(referenceFrame.State.CentroidPosition).Scale(1.0/vmath.Metre)
 	mR, iR := retrievePhysicalData(referenceFrame)
 	mI, iI := retrievePhysicalData(incidentFrame)
 
@@ -42,7 +42,7 @@ func (manifold *ContactManifold) resolvePointCollision(incidentFrame, referenceF
 	vPr := referenceFrame.State.Velocity.Add(rR.CrossUpwardsWithVec(referenceFrame.State.AngularVelocity))
 
 	separationVelocity := vPi.Sub(vPr).Dot(collisionNormal)
-	if separationVelocity > 0 {
+	if separationVelocity > -0.001 {
 		return
 	}
 
@@ -65,7 +65,12 @@ func (manifold *ContactManifold) resolvePlanarCollision(incidentFrame, reference
 	mI, _ := retrievePhysicalData(incidentFrame)
 	mR, _ := retrievePhysicalData(referenceFrame)
 
-	impulse := -(2.0) * (vPi.Sub(vPr)).Dot(collisionNormal) /
+	separationVelocity := vPi.Sub(vPr).Dot(collisionNormal)
+	if separationVelocity > -0.001 {
+		return
+	}
+
+	impulse := -(2.0) * separationVelocity /
 		(collisionNormal.Dot(collisionNormal) * (1.0/mI + 1.0/mR))
 
 	incidentFrame.State.ApplyImpulse(collisionNormal.Scale(impulse), vmath.ZeroVec2D)

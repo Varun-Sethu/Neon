@@ -1,7 +1,7 @@
 package meshes
 
 import (
-	"Neon/math"
+	"Neon/engine/math"
 )
 
 // Meshes are represented with an adjacency list, essentially a cylic graph
@@ -12,8 +12,6 @@ type Mesh struct {
 	Radius   float64 // Only defined for circle mesh
 
 	MeshType
-
-	prevID int // internal var for tracking vertex IDs
 }
 
 // Table of meshes for which we can reasonably compute "intersections"

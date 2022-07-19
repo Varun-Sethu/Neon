@@ -1,9 +1,8 @@
 package entities
 
 import (
+	"Neon/engine/math"
 	"Neon/entities/meshes"
-	"Neon/internal/units"
-	"Neon/math"
 
 	gMath "math"
 )
@@ -61,7 +60,7 @@ func (polygon *Polygon) NextTimeStep(dt float64) {
 		return
 	}
 
-	e.CentroidPosition = e.CentroidPosition.Add(e.Velocity.Scale(units.Metre).Scale(dt))
+	e.CentroidPosition = e.CentroidPosition.Add(e.Velocity.Scale(math.Metre).Scale(dt))
 
 	// Simple rotational utility
 	matrixRotate := func(d math.Vector2D, dTheta float64) math.Vector2D {

@@ -1,8 +1,8 @@
 package engine
 
 import (
+	"Neon/engine/math"
 	"Neon/entities"
-	"Neon/math"
 	"testing"
 )
 
