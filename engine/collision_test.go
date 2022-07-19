@@ -1,29 +1,22 @@
 package engine
 
 import (
-	"neon/entities"
-	"neon/math"
+	"Neon/entities"
+	"Neon/math"
 	"testing"
 )
 
-
-
 func TestManifoldGeneration(t *testing.T) {
-	poly_a := entities.NewPolygon([]math.Vector2D{{0, 100}, {100, 100}, {100, 0}, {0,0}})
-	poly_b := entities.NewPolygon([]math.Vector2D{{50, 101}, {120, 120}, {150, 70}, {110,50}})
+	polyA := entities.NewPolygon([]math.Vector2D{{X: 0, Y: 100}, {X: 100, Y: 100}, {X: 100, Y: 0}, {X: 0, Y: 0}})
+	polyB := entities.NewPolygon([]math.Vector2D{{X: 50, Y: 101}, {X: 120, Y: 120}, {X: 150, Y: 70}, {X: 110, Y: 50}})
 
-
-	mtv, _ := entities.SAT(poly_a, poly_b)
+	mtv := entities.SAT(polyA, polyB)
 	t.Log(mtv)
-	manifold := ComputeContactManifold(poly_a, poly_b)
+	manifold := ComputeContactManifold(&polyA, &polyB)
 
 	t.Logf("Contact Points: %v", manifold.CollisionPoints)
 }
 
-
-
-
 func TestClipping(t *testing.T) {
 
 }
-

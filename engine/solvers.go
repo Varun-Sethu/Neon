@@ -1,10 +1,10 @@
 package engine
 
 import (
+	"Neon/entities"
+	"Neon/internal/units"
+	vmath "Neon/math"
 	"math"
-	"neon/entities"
-	"neon/internal/units"
-	vmath "neon/math"
 )
 
 // Contains all the collision solvers
@@ -17,7 +17,6 @@ func (manifold ContactManifold) ResolveCollision() {
 	// First statically resolve the collision
 	incidentFrame.State.CentroidPosition = incidentFrame.State.CentroidPosition.Add(manifold.MTV)
 
-
 	// Then compute impulses
 	if manifold.ContactCount == 1 {
 		manifold.resolvePointCollision(incidentFrame, referenceFrame)
@@ -26,26 +25,17 @@ func (manifold ContactManifold) ResolveCollision() {
 	}
 }
 
-
-
-
-
-
 // Resolves collision with one contact point
 func (manifold *ContactManifold) resolvePointCollision(incidentFrame, referenceFrame *entities.Polygon) {
 	collisionNormal := manifold.MTV.Normalise()
 	referenceCollisionPoints := manifold.findContactPointsFor(manifold.ReferenceFrame, manifold.ReferenceFace)
 
-
-	pIncident  := manifold.CollisionPoints[0]
+	pIncident := manifold.CollisionPoints[0]
 	pReference := referenceCollisionPoints[0]
-
 
 	rI, rR := pIncident.Sub(incidentFrame.State.CentroidPosition).Scale(1.0/units.Metre), pReference.Sub(referenceFrame.State.CentroidPosition).Scale(1.0/units.Metre)
 	mR, iR := retrievePhysicalData(referenceFrame)
 	mI, iI := retrievePhysicalData(incidentFrame)
-
-
 
 	// Compute the velocities at the point of collision
 	vPi := incidentFrame.State.Velocity.Add(rI.CrossUpwardsWithVec(incidentFrame.State.AngularVelocity))
@@ -65,15 +55,6 @@ func (manifold *ContactManifold) resolvePointCollision(incidentFrame, referenceF
 	referenceFrame.State.ApplyImpulse(collisionNormal.Scale(-impulse), pReference)
 }
 
-
-
-
-
-
-
-
-
-
 // Resolves collisions with two contact points
 func (manifold *ContactManifold) resolvePlanarCollision(incidentFrame, referenceFrame *entities.Polygon) {
 
@@ -84,20 +65,12 @@ func (manifold *ContactManifold) resolvePlanarCollision(incidentFrame, reference
 	mI, _ := retrievePhysicalData(incidentFrame)
 	mR, _ := retrievePhysicalData(referenceFrame)
 
-
 	impulse := -(2.0) * (vPi.Sub(vPr)).Dot(collisionNormal) /
-		(collisionNormal.Dot(collisionNormal) * (1.0 /mI + 1.0 /mR))
+		(collisionNormal.Dot(collisionNormal) * (1.0/mI + 1.0/mR))
 
 	incidentFrame.State.ApplyImpulse(collisionNormal.Scale(impulse), vmath.ZeroVec2D)
 	referenceFrame.State.ApplyImpulse(collisionNormal.Scale(-impulse), vmath.ZeroVec2D)
 }
-
-
-
-
-
-
-
 
 // Retrieves the physical data of the polygon, note that if the polygon is not kinetic then we say it has "infinite mass"
 func retrievePhysicalData(poly *entities.Polygon) (float64, float64) {
@@ -107,25 +80,21 @@ func retrievePhysicalData(poly *entities.Polygon) (float64, float64) {
 	return poly.State.Mass, poly.State.RotationalInertia
 }
 
-
-
 // function that just processes the manifold
-func (manifold* ContactManifold)  processManifold() {
-	if manifold.ContactCount == 1 || math.Abs(manifold.ContactDepths[0] - manifold.ContactDepths[1]) > 0.2 { // magic numbers :)
+func (manifold *ContactManifold) processManifold() {
+	if manifold.ContactCount == 1 || math.Abs(manifold.ContactDepths[0]-manifold.ContactDepths[1]) > 0.2 { // magic numbers :)
 		return
 	}
 
 	manifold.ContactCount -= 1
-	invalidContactPoint := 0; if manifold.ContactDepths[1] < manifold.ContactDepths[0] {
-		invalidContactPoint = 1}
-	manifold.CollisionPoints = append(manifold.CollisionPoints[:invalidContactPoint], manifold.CollisionPoints[invalidContactPoint+ 1:]...)
+	invalidContactPoint := 0
+	if manifold.ContactDepths[1] < manifold.ContactDepths[0] {
+		invalidContactPoint = 1
+	}
+	manifold.CollisionPoints = append(manifold.CollisionPoints[:invalidContactPoint], manifold.CollisionPoints[invalidContactPoint+1:]...)
 
 	return
 }
-
-
-
-
 
 // For more accurate collision resolution the incident points are actually projected onto the reference face, thus our "incident" points are really the projections onto these shapes
 func (manifold ContactManifold) findContactPointsFor(p *entities.Polygon, face []int) []vmath.Vector2D {
@@ -138,5 +107,3 @@ func (manifold ContactManifold) findContactPointsFor(p *entities.Polygon, face [
 
 	return contactPoints
 }
-
-

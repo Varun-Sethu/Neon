@@ -1,7 +1,6 @@
 package entities
 
-import "neon/math"
-
+import "Neon/math"
 
 // simple utility functions
 
@@ -13,20 +12,20 @@ func unsetInt(slice []int, s int) []int {
 	return append(slice[:s], slice[s+1:]...)
 }
 
-
-
-
-
 func del(slice []int, s int) []int {
 	id := -1
-	for k, v := range slice {if v == s {
-		id = k; break
-	}}
-	if id == -1 {return slice}
+	for k, v := range slice {
+		if v == s {
+			id = k
+			break
+		}
+	}
+	if id == -1 {
+		return slice
+	}
 
 	return unsetInt(slice, id)
 }
-
 
 // swaps the target value with the result in the slice
 func swap(slice []int, target int, result int) []int {
@@ -38,5 +37,3 @@ func swap(slice []int, target int, result int) []int {
 	}
 	return slice
 }
-
-

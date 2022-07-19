@@ -1,26 +1,21 @@
 package entities
 
 import (
+	"Neon/math"
 	gmath "math"
-	"neon/math"
 	"sort"
 )
-
-
-
 
 /*
 	This entire file handles elementary geometry for polygons, algorithms such as SAT and Polygon Clipping are implemented here
 	Additionally, manifold generation is also implemented here
- */
-
-
+*/
 
 // GetSupportingPoint returns the supporting point of a polygon along a specific axis
 func (polygon *Polygon) GetSupportingPoint(axis math.Vector2D) (math.Vector2D, int) {
 	currentMaxProj := gmath.Inf(-1)
-	bestVertex	   := math.ZeroVec2D
-	vertexID	   := 0
+	bestVertex := math.ZeroVec2D
+	vertexID := 0
 
 	for id, v := range polygon.Vertices {
 		projection := v.Dot(axis)
@@ -33,15 +28,15 @@ func (polygon *Polygon) GetSupportingPoint(axis math.Vector2D) (math.Vector2D, i
 	return bestVertex, vertexID
 }
 
-
-
 // DetermineSupportingEdge determines the edge furthest along a specific axis, in essence the specific edge, also returns how "parallel" the edge's normal is with the provided normal
 func (polygon *Polygon) DetermineSupportingEdge(axis math.Vector2D) ([]int, float64) {
 
 	_, vertexID := polygon.GetSupportingPoint(axis)
-	v			:= polygon.Vertices[vertexID]
-	A			:= polygon.Vertices[polygon.Edges[vertexID][0]]; normalA := math.ComputeOutwardsNormal(A, v, polygon.State.CentroidPosition)
-	B			:= polygon.Vertices[polygon.Edges[vertexID][1]]; normalB := math.ComputeOutwardsNormal(B, v, polygon.State.CentroidPosition)
+	v := polygon.Vertices[vertexID]
+	A := polygon.Vertices[polygon.Edges[vertexID][0]]
+	normalA := math.ComputeOutwardsNormal(A, v, polygon.State.CentroidPosition)
+	B := polygon.Vertices[polygon.Edges[vertexID][1]]
+	normalB := math.ComputeOutwardsNormal(B, v, polygon.State.CentroidPosition)
 
 	// There are two possible other vertices that can connect to this one, we determine which one is significant by comparing dot products
 	if gmath.Abs(normalA.Dot(axis)) >= gmath.Abs(normalB.Dot(axis)) {
@@ -49,9 +44,6 @@ func (polygon *Polygon) DetermineSupportingEdge(axis math.Vector2D) ([]int, floa
 	}
 	return []int{vertexID, polygon.Edges[vertexID][1]}, gmath.Abs(normalB.Dot(axis))
 }
-
-
-
 
 // PolyVerticesOutside takes a "line" (2 points) and a normal and returns all points of the polygon that lie outside this line, in the direction anti-parallel to the normal
 // Note: the function assumes that the vertices are in the "world frame"
@@ -68,14 +60,12 @@ func (polygon *Polygon) PolyVerticesOutside(line [2]math.Vector2D, normal math.V
 	return outside
 }
 
-
-
 // AxisProjection returns the projection interval of a polygon onto an axis
 // Note that the projections are in "world coordinates"
 func (polygon *Polygon) AxisProjection(axis math.Vector2D) []float64 {
 	// We need to first determine the supporting points along the axis perpendicular to the provided axis
 	axis = axis.Normalise()
-	supLeft, _  := polygon.GetSupportingPoint(axis)
+	supLeft, _ := polygon.GetSupportingPoint(axis)
 	supRight, _ := polygon.GetSupportingPoint(axis.Scale(-1.0))
 
 	interval := []float64{
@@ -96,22 +86,15 @@ func projectionsOverlap(projectionA, projectionB []float64) (bool, float64) {
 	return true, gmath.Min(projectionA[1], projectionB[1]) - gmath.Max(projectionA[0], projectionB[0])
 }
 
-
-
-
-
-
-
-
 // satSinglePolygon just checks if polyB intersects polyA
 func satSinglePolygon(polyA Polygon, polyB Polygon) math.Vector2D {
 	mtv := math.BigVec2D
 
 	for vertex, edges := range polyA.Edges {
 		for _, edge := range edges {
-			worldVertex := polyA.Vertices[vertex].Add(polyA.State.CentroidPosition) // worldVertex refers to the world coordinates of the vertex
-			worldEdgeV 	:= polyA.Vertices[edge].Add(polyA.State.CentroidPosition) // worldEdgeV is the world coordinates of the other vertex that defines this edge
-			normal		:= math.ComputeOutwardsNormal(worldEdgeV, worldVertex, polyA.State.CentroidPosition) // normal is just the normal vector associated with this edge
+			worldVertex := polyA.Vertices[vertex].Add(polyA.State.CentroidPosition)                     // worldVertex refers to the world coordinates of the vertex
+			worldEdgeV := polyA.Vertices[edge].Add(polyA.State.CentroidPosition)                        // worldEdgeV is the world coordinates of the other vertex that defines this edge
+			normal := math.ComputeOutwardsNormal(worldEdgeV, worldVertex, polyA.State.CentroidPosition) // normal is just the normal vector associated with this edge
 
 			projectedAxisPolyb := polyB.AxisProjection(normal)
 			projectedAxisPolya := polyA.AxisProjection(normal)
@@ -133,15 +116,13 @@ func satSinglePolygon(polyA Polygon, polyB Polygon) math.Vector2D {
 	}
 }
 
-
-
-
 // MapToWorldSpace takes a polygon whose vertices internally are in the COM frame and converts them to the "world frame"
-func (polygon *Polygon) MapToWorldSpace()  {
+func (polygon *Polygon) MapToWorldSpace() {
 	for vertexId, _ := range polygon.Vertices {
 		polygon.Vertices[vertexId] = polygon.Vertices[vertexId].Add(polygon.State.CentroidPosition)
 	}
 }
+
 // If a polygon is in world space eg. all the coordinates are relative to the global origin then this just maps them all out of it
 func (polygon *Polygon) MapOutofWorldSpace() {
 	for vertexId, _ := range polygon.Vertices {
@@ -149,19 +130,12 @@ func (polygon *Polygon) MapOutofWorldSpace() {
 	}
 }
 
-
-
-
-
-
-
 // SAT determines if two polygons are intersecting and computes the corresponding MTV
 // Note that the MTV ALWAYS POINTS FROM A TO B
 func SAT(polyA Polygon, polyB Polygon) math.Vector2D {
 	// Get both the potential minimum translation vectors
 	mtvForB := satSinglePolygon(polyA, polyB)
 	mtvForA := satSinglePolygon(polyB, polyA)
-
 
 	// Actually figure out which one to return
 	// looks like there is a separating axis, hence: no collision
@@ -171,10 +145,7 @@ func SAT(polyA Polygon, polyB Polygon) math.Vector2D {
 		if mtvForB.Length() <= mtvForA.Length() {
 			return mtvForB
 		} else {
-			return mtvForA.Scale(-1.0)}
+			return mtvForA.Scale(-1.0)
+		}
 	}
 }
-
-
-
-
