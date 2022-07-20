@@ -29,9 +29,8 @@ func (p Polygon) Update(dt float64) {
 func (p Polygon) Render(imd *imdraw.IMDraw) {
 	imd.Color = p.colour
 	for _, vc := range p.internal.Vertices {
-		v := internalToPixelVec(vc)
-		cp := internalToPixelVec(p.internal.State.CentroidPosition)
-		imd.Push(v.Add(cp))
+		cp := internalToPixelVec(vc.Add(p.internal.State.CentroidPosition))
+		imd.Push(cp)
 	}
-	imd.Polygon(2.0)
+	imd.Polygon(0.0)
 }

@@ -33,7 +33,7 @@ func LineIntervalIntersection(interval, line [2]Vector2D) Vector2D {
 func ComputeOutwardsNormal(A, B, C Vector2D) Vector2D {
 	normalVectorAttempt := A.Sub(B).Normal().Normalise()
 
-	if A.Sub(C).Dot(normalVectorAttempt) < 0 {
+	if A.Sub(C).Dot(normalVectorAttempt) < 0.0001 {
 		normalVectorAttempt = normalVectorAttempt.Scale(-1.0)
 	}
 

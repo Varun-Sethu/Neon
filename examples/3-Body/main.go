@@ -8,6 +8,7 @@ import (
 	"image/color"
 	"log"
 	"os"
+	"runtime"
 	"runtime/pprof"
 	"time"
 
@@ -17,32 +18,46 @@ import (
 )
 
 // just defines our polygons
-func definePolygons() (*entities.Polygon, *entities.Polygon, *entities.Polygon) {
+func definePolygons() []*entities.Polygon {
 	poly := entities.NewPolygon([]math.Vector2D{
-		{0, 100}, {100, 100}, {100, 0}, {0, 0},
+		{X: 0, Y: 100}, {X: 100, Y: 100}, {X: 100, Y: 0}, {X: 0, Y: 0},
 	})
-	poly.State.Mass = 10.0
-	poly.State.RotationalInertia = 5.0
+	poly.State.Mass = 2.0
+	poly.State.RotationalInertia = 2.0
 
 	specialPoly := entities.NewPolygon([]math.Vector2D{
-		{200, 300}, {300, 300}, {300, 200}, {200, 200},
+		{X: 200, Y: 300}, {X: 300, Y: 300}, {X: 300, Y: 200}, {X: 200, Y: 200},
 	})
-	specialPoly.State.Mass = 5.0
+	specialPoly.State.Mass = 2.0
 	specialPoly.State.RotationalInertia = 2.0
 
-	poly.State.AngularVelocity = 0.3
+	poly.State.AngularVelocity = 1.0
 	specialPoly.State.AngularVelocity = 0.1
 
 	translationalPoly := entities.NewPolygon([]math.Vector2D{
-		{600, 300}, {700, 300}, {700, 200}, {600, 200},
+		{X: 600, Y: 300}, {X: 700, Y: 300}, {X: 700, Y: 200}, {X: 600, Y: 200},
 	})
 
 	translationalPoly.State.Mass = 2.0
-	translationalPoly.State.RotationalInertia = 1.0
+	translationalPoly.State.RotationalInertia = 2.0
 	translationalPoly.State.Velocity = math.Vector2D{X: -0.5}
-	poly.State.Velocity = math.Vector2D{X: 1, Y: 1}
+	poly.State.Velocity = math.Vector2D{X: 0.5, Y: 0.5}
 
-	return &poly, &specialPoly, &translationalPoly // be freeeeeee to the heap
+	return []*entities.Polygon{&poly, &specialPoly, &translationalPoly} // be freeeeeee to the heap
+}
+
+func defineCornerPolygons(height, width float64) []*entities.Polygon {
+	top := entities.NewPolygon([]math.Vector2D{{X: -100, Y: height - 1}, {X: width + 100, Y: height - 1}, {X: width + 100, Y: height + 1}, {X: -100, Y: height + 1}})
+	bottom := entities.NewPolygon([]math.Vector2D{{X: -100, Y: 1}, {X: width + 100, Y: 1}, {X: width + 100, Y: -200}, {X: -100, Y: -200}})
+	left := entities.NewPolygon([]math.Vector2D{{X: 0, Y: 1}, {X: 0, Y: height - 1}, {X: 1, Y: height - 1}, {X: 1, Y: 0}})
+	right := entities.NewPolygon([]math.Vector2D{{X: width + 1, Y: 1}, {X: width + 1, Y: height - 1}, {X: width - 1, Y: height - 1}, {X: width - 1, Y: 0}})
+
+	top.State.NoKinetic = true
+	bottom.State.NoKinetic = true
+	left.State.NoKinetic = true
+	right.State.NoKinetic = true
+
+	return []*entities.Polygon{&top, &bottom, &left, &right}
 }
 
 func run() {
@@ -60,16 +75,16 @@ func run() {
 	intermediateCanvas := pixelgl.NewCanvas(win.Bounds())
 	imd := imdraw.New(nil)
 
-	// define our smol polygons
-	poly, specialPoly, translationalPoly := definePolygons()
+	physicsPolys := append(definePolygons(), defineCornerPolygons(win.Bounds().H(), win.Bounds().W())...)
+	drawablePolys := []Polygon{}
 
-	p := Polygon{internal: poly, colour: color.NRGBA{R: 255, G: 255, B: 255, A: 255}}
-	p1 := Polygon{internal: specialPoly, colour: color.NRGBA{R: 255, G: 255, B: 255, A: 255}}
-	p2 := Polygon{internal: translationalPoly, colour: color.NRGBA{R: 255, G: 255, B: 255, A: 255}}
+	for _, poly := range physicsPolys {
+		drawablePolys = append(drawablePolys, Polygon{internal: poly, colour: color.NRGBA{R: 228, G: 233, B: 242, A: 255}})
+	}
 
 	// hook em up to the manager
 	physicsManager := engine.NewPhysicsManager()
-	physicsManager.BeginTracking(poly, specialPoly, translationalPoly)
+	physicsManager.BeginTracking(physicsPolys...)
 
 	// Callback for just drawing in the collision points
 	physicsManager.AddCallback(func(manifold engine.ContactManifold) {
@@ -87,24 +102,24 @@ func run() {
 		dt := time.Since(start).Seconds()
 		start = time.Now()
 
-		imd.Color = color.NRGBA{R: 0, G: 13, B: 28, A: 255}
-		imd.Push(pixel.V(0, win.Bounds().H()), pixel.V(win.Bounds().W(), 0))
-		imd.Rectangle(0)
-
 		// core physics
+		intermediateCanvas.Clear(color.NRGBA{R: 0, G: 13, B: 28, A: 255})
+		imd.Clear()
 		physicsManager.NextTimeStep(dt)
 
-		p.Render(imd)
-		p1.Render(imd)
-		p2.Render(imd)
+		for _, p := range drawablePolys {
+			p.Render(imd)
+		}
 
 		imd.Draw(intermediateCanvas)
 		intermediateCanvas.Draw(win, viewMatrix)
+
 		win.Update()
 	}
 }
 
 var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
+var memprofile = flag.String("memprofile", "", "write memory profile to `file`")
 
 func main() {
 	flag.Parse()
@@ -113,9 +128,22 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
+
 		pprof.StartCPUProfile(f)
 		defer pprof.StopCPUProfile()
 	}
 
 	pixelgl.Run(run)
+
+	if *memprofile != "" {
+		f, err := os.Create(*memprofile)
+		if err != nil {
+			log.Fatal("could not create memory profile: ", err)
+		}
+		defer f.Close()
+		runtime.GC()
+		if err := pprof.WriteHeapProfile(f); err != nil {
+			log.Fatal("could not write memory profile: ", err)
+		}
+	}
 }

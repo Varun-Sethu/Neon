@@ -45,8 +45,16 @@ func (receiver PhysicsManager) DetectCollisions() {
 
 // NextTimeStep just progresses everything to the next timestep, just numerical integration.... Note: Every entitiy already has methods for progressing its state
 func (receiver *PhysicsManager) NextTimeStep(dt float64) {
+	// Progress
 	for _, e := range receiver.trackingEntities {
 		e.NextTimeStep(dt)
 	}
+
+	// Resolve collisions :D
 	receiver.DetectCollisions()
+
+	// Progress
+	for _, e := range receiver.trackingEntities {
+		e.NextTimeStep(dt)
+	}
 }

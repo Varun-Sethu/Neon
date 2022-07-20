@@ -3,6 +3,7 @@ package engine
 import (
 	"Neon/engine/math"
 	"Neon/entities"
+	gmath "math"
 )
 
 // This is completely responsible for determining if two objects collide and computing a collision manifold for them
@@ -24,7 +25,7 @@ func ComputeContactManifold(poly_a, poly_b *entities.Polygon) ContactManifold {
 	mtv := entities.SAT(*poly_a, *poly_b) // note that the MTV always points from A to B
 
 	// If there is no collision then the MTV is the zero vector which we need to account for
-	if mtv.Length() == 0 {
+	if gmath.Abs(mtv.Length()) <= equalityTolerance {
 		return ContactManifold{
 			ContactCount: 0,
 		}
@@ -83,7 +84,7 @@ func polygonClip(incidentPoly, referencePoly entities.Polygon, incidentFace, ref
 	incidentFaceEdge := incidentPoly.GetEdgeCoordinates(incidentFace)
 	referenceFaceEdge := referencePoly.GetEdgeCoordinates(referenceFace)
 
-	// for simplicity we can compute a "set" of edges that the incident polygon need to be clipped against
+	// for simplicity we can compute a "set" of edges that the incident polygon needs to be clipped against
 	requiredClipping := determineRequiredClippingEdges(referencePoly, referenceFace)
 
 	// iterate over all the edges that require clipping
@@ -94,8 +95,10 @@ func polygonClip(incidentPoly, referencePoly entities.Polygon, incidentFace, ref
 	}
 
 	// finally the "manifold" is simply points that have actually penetrated the reference_poly, hence they lie below the reference face
-	return math.LiesBehindLine(incidentFaceEdge[:], referenceFaceEdge, math.ComputeOutwardsNormal(
-		referenceFaceEdge[0], referenceFaceEdge[1], referencePoly.State.CentroidPosition))
+	return math.LiesBehindLine(
+		incidentFaceEdge[:],
+		referenceFaceEdge,
+		math.ComputeOutwardsNormal(referenceFaceEdge[0], referenceFaceEdge[1], referencePoly.State.CentroidPosition))
 }
 
 func DetermineCollision(polyA *entities.Polygon, polyB *entities.Polygon) (bool, ContactManifold) {
