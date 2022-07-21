@@ -1,13 +1,13 @@
 package entities
 
 import (
-	"Neon/engine/math"
+	neonMath "Neon/engine/math"
 )
 
 // Polygon data structure represents a polygon internally using a graph
 /* Essentially a very simple vertex-vertex mesh */
 type Polygon struct {
-	Vertices map[int]math.Vector2D
+	Vertices map[int]neonMath.Vector2D
 	Edges    map[int][]int // adjacency matrix for the vertices
 
 	State EntityState // Refers to the current physical state of the polygon
@@ -17,9 +17,9 @@ type Polygon struct {
 }
 
 // Simple method to generate a new polygon
-func NewPolygon(vertices []math.Vector2D) Polygon {
+func NewPolygon(vertices []neonMath.Vector2D) Polygon {
 	// First compute the centroid
-	centroid := math.ZeroVec2D
+	centroid := neonMath.ZeroVec2D
 	for _, vertex := range vertices {
 		centroid = centroid.Add(vertex)
 	}
@@ -27,7 +27,7 @@ func NewPolygon(vertices []math.Vector2D) Polygon {
 
 	// The polygon we want to generate
 	generatedPolygon := Polygon{
-		Vertices: make(map[int]math.Vector2D, len(vertices)),
+		Vertices: make(map[int]neonMath.Vector2D, len(vertices)),
 		Edges:    make(map[int][]int),
 		State: EntityState{
 			CentroidPosition: centroid,
@@ -49,8 +49,8 @@ func NewPolygon(vertices []math.Vector2D) Polygon {
 }
 
 // Returns the endpoints of the interval defined by an edge
-func (polygon *Polygon) GetEdgeCoordinates(face []int) [2]math.Vector2D {
-	return [2]math.Vector2D{
+func (polygon *Polygon) GetEdgeCoordinates(face []int) [2]neonMath.Vector2D {
+	return [2]neonMath.Vector2D{
 		polygon.Vertices[face[0]].Add(polygon.State.CentroidPosition),
 		polygon.Vertices[face[1]].Add(polygon.State.CentroidPosition),
 	}

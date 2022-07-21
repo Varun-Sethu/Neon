@@ -1,105 +1,90 @@
 package engine
 
 import (
-	vmath "Neon/engine/math"
+	neonMath "Neon/engine/math"
 	"Neon/entities"
 	"math"
 )
-
-// Contains all the collision solvers
 
 // ResolveCollision computes what has to be done during a collision and resolves/calculates all the physics involved with it, given a collision manifold
 func (manifold ContactManifold) ResolveCollision() {
 	incidentFrame, referenceFrame := manifold.IncidentFrame, manifold.ReferenceFrame
 
-	if incidentFrame.State.NoKinetic && referenceFrame.State.NoKinetic {
-		return
+	if !incidentFrame.State.NoKinetic || !referenceFrame.State.NoKinetic {
+		// First solve the collision by fetching a solver and invoking it
+		manifold.getSolver()(incidentFrame, referenceFrame)
+
+		// Then statically resolve the collision
+		referenceFrame.State.ShiftCentroid(manifold.MTV.Scale(-1.0))
+		incidentFrame.State.ShiftCentroid(manifold.MTV)
+	}
+}
+
+// Simple helper function for fetching the appropriate collision solver, will be expanded later to include more specialised solvers
+func (manifold *ContactManifold) getSolver() func(incidentFrame *entities.Polygon, referenceFrame *entities.Polygon) {
+	switch manifold.ContactCount {
+	case 1:
+		return manifold.resolvePointCollision
+	case 2:
+		return manifold.resolvePlanarCollision
 	}
 
-	// First compute the impulses to apply to the physics objects
-	if manifold.ContactCount == 1 {
-		manifold.resolvePointCollision(incidentFrame, referenceFrame)
-	} else if manifold.ContactCount == 2 {
-		manifold.resolvePlanarCollision(incidentFrame, referenceFrame)
-	}
-
-	// Then statically resolve the collision
-	if !referenceFrame.State.NoKinetic {
-		referenceFrame.State.CentroidPosition = referenceFrame.State.CentroidPosition.Add(manifold.MTV.Scale(-1.0))
-	} else if !incidentFrame.State.NoKinetic {
-		incidentFrame.State.CentroidPosition = incidentFrame.State.CentroidPosition.Add(manifold.MTV)
-	}
+	return nil
 }
 
 // Resolves collision with one contact point
-func (manifold *ContactManifold) resolvePointCollision(incidentFrame, referenceFrame *entities.Polygon) bool {
-	referenceCollisionPoints := manifold.findContactPointsFor(manifold.ReferenceFrame, manifold.ReferenceFace)
-
+func (manifold *ContactManifold) resolvePointCollision(incidentFrame, referenceFrame *entities.Polygon) {
 	pIncident := manifold.CollisionPoints[0]
-	pReference := referenceCollisionPoints[0]
+	pReference := manifold.CollisionPoints[0]
 
-	return manifold.resolveCollisionWithAppPoints(incidentFrame, referenceFrame, pIncident, pReference)
+	impulse := manifold.resolveCollisionWithAppPoints(incidentFrame, referenceFrame, pIncident, pReference)
+
+	// Apply the computed impulse
+	incidentFrame.State.ApplyImpulse(impulse, pIncident)
+	referenceFrame.State.ApplyImpulse(impulse.Scale(-1.0), pReference)
 }
 
 // Resolves collisions with two contact points
-func (manifold *ContactManifold) resolvePlanarCollision(incidentFrame, referenceFrame *entities.Polygon) bool {
-	referenceCollisionPoints := manifold.findContactPointsFor(manifold.ReferenceFrame, manifold.ReferenceFace)
+func (manifold *ContactManifold) resolvePlanarCollision(incidentFrame, referenceFrame *entities.Polygon) {
+	pointA, pointB := manifold.CollisionPoints[0], manifold.CollisionPoints[1]
 
-	pIncident := (manifold.CollisionPoints[0].Add(manifold.CollisionPoints[1])).Scale(0.5)
-	pReference := (referenceCollisionPoints[0].Add(referenceCollisionPoints[1])).Scale(0.5)
+	// To prevent short circuit evaliation we create two variables as opposed to chaning the invocations with and statements
+	impulseOne := manifold.resolveCollisionWithAppPoints(incidentFrame, referenceFrame, pointA, pointA)
+	impulseTwo := manifold.resolveCollisionWithAppPoints(incidentFrame, referenceFrame, pointB, pointB)
 
-	return manifold.resolveCollisionWithAppPoints(incidentFrame, referenceFrame, pIncident, pReference)
+	// Apply the computed impulses
+	incidentFrame.State.ApplyImpulse(impulseOne, pointA)
+	referenceFrame.State.ApplyImpulse(impulseOne.Scale(-1.0), pointA)
+
+	incidentFrame.State.ApplyImpulse(impulseTwo, pointB)
+	referenceFrame.State.ApplyImpulse(impulseTwo.Scale(-1.0), pointB)
 }
 
 // resolveCollisionWithAppPoint resolves a collision given the application point(s)
-func (manifold *ContactManifold) resolveCollisionWithAppPoints(incidentFrame, referenceFrame *entities.Polygon, pIncident vmath.Vector2D, pReference vmath.Vector2D) bool {
+func (manifold *ContactManifold) resolveCollisionWithAppPoints(incidentFrame, referenceFrame *entities.Polygon, pIncident neonMath.Vector2D, pReference neonMath.Vector2D) neonMath.Vector2D {
 	collisionNormal := manifold.MTV.Normalise()
 
-	rI, rR := pIncident.Sub(incidentFrame.State.CentroidPosition).Scale(1.0/vmath.Metre), pReference.Sub(referenceFrame.State.CentroidPosition).Scale(1.0/vmath.Metre)
-	mR, iR := retrievePhysicalData(referenceFrame)
-	mI, iI := retrievePhysicalData(incidentFrame)
+	rI, rR := pIncident.Sub(incidentFrame.State.CentroidPosition).Scale(1.0/neonMath.Metre), pReference.Sub(referenceFrame.State.CentroidPosition).Scale(1.0/neonMath.Metre)
+	mR, iR := referenceFrame.State.RetrievePhysicalData()
+	mI, iI := incidentFrame.State.RetrievePhysicalData()
 
 	// Compute the velocities at the point of collision
-	vPi := incidentFrame.State.Velocity.Add(rI.CrossUpwardsWithVec(incidentFrame.State.AngularVelocity))
-	vPr := referenceFrame.State.Velocity.Sub(rR.CrossUpwardsWithVec(referenceFrame.State.AngularVelocity))
+	vPi := incidentFrame.State.Velocity.Sub(rI.CrossUpwardsWithVec(incidentFrame.State.AngularVelocity))
+	vPr := referenceFrame.State.Velocity.Add(rR.CrossUpwardsWithVec(referenceFrame.State.AngularVelocity))
 
 	separationVelocity := vPi.Sub(vPr).Dot(collisionNormal)
 	if math.IsNaN(separationVelocity) {
-		return false
+		return neonMath.ZeroVec2D
 	}
 
 	// weird dampening of the separation velocity, seems to produce more "reasonable" results
 	// this number was just arrived at via some weird testing
-	restitution := 0.73
-	if math.Abs(separationVelocity) < 0.1 {
-		restitution = 1.0
-	}
+	restitution := 0.954
 	impulse := -(1.0 + restitution) * separationVelocity /
 		((1.0/mR + 1.0/mI) +
 			math.Pow(rI.CrossMag(collisionNormal), 2)/iI +
 			math.Pow(rR.CrossMag(collisionNormal), 2)/iR)
+	impulse /= float64(manifold.ContactCount)
 
-	incidentFrame.State.ApplyImpulse(collisionNormal.Scale(impulse), pIncident)
-	referenceFrame.State.ApplyImpulse(collisionNormal.Scale(-impulse), pReference)
-	return true
-}
-
-// Retrieves the physical data of the polygon, note that if the polygon is not kinetic then we say it has "infinite mass" and "infinite moment of inertia"
-func retrievePhysicalData(poly *entities.Polygon) (float64, float64) {
-	if poly.State.NoKinetic {
-		return math.Inf(1), math.Inf(1)
-	}
-	return poly.State.Mass, poly.State.RotationalInertia
-}
-
-// For more accurate collision resolution the incident points are actually projected onto the reference face, thus our "incident" points are really the projections onto these shapes
-func (manifold ContactManifold) findContactPointsFor(p *entities.Polygon, face []int) []vmath.Vector2D {
-	line := p.GetEdgeCoordinates(face)
-
-	var contactPoints []vmath.Vector2D
-	for _, v := range manifold.CollisionPoints {
-		contactPoints = append(contactPoints, vmath.ProjectPointOntoLine(v, line).Add(p.State.CentroidPosition))
-	}
-
-	return contactPoints
+	return collisionNormal.Scale(impulse)
 }

@@ -1,13 +1,14 @@
 package meshes
 
 import (
-	"Neon/engine/math"
+	neonMath "Neon/engine/math"
 )
 
 // Meshes are represented with an adjacency list, essentially a cylic graph
+// File just defines the base properties that are required for a mesh
 type Mesh struct {
-	Centroid *math.Vector2D // until I can think of a better method this stays... Essentially the centroid points to the centroid as defined in the entity state
-	Vertices map[int]math.Vector2D
+	Centroid *neonMath.Vector2D // until I can think of a better method this stays... Essentially the centroid points to the centroid as defined in the entity state
+	Vertices map[int]neonMath.Vector2D
 	EdgeSet  map[int][]int
 	Radius   float64 // Only defined for circle mesh
 
@@ -25,6 +26,6 @@ const (
 )
 
 // Determines if a mesh intersects another mesh and returns the MTV to statically resolve the collision
-func (Mesh) Intersects(mesh Mesh) math.Vector2D {
-	return math.Vector2D{}
+func (Mesh) Intersects(mesh Mesh) neonMath.Vector2D {
+	return neonMath.Vector2D{}
 }

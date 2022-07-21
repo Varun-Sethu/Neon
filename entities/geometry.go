@@ -1,8 +1,8 @@
 package entities
 
 import (
-	"Neon/engine/math"
-	gmath "math"
+	neonMath "Neon/engine/math"
+	"math"
 	"sort"
 )
 
@@ -12,9 +12,9 @@ import (
 */
 
 // GetSupportingPoint returns the supporting point of a polygon along a specific axis
-func (polygon *Polygon) GetSupportingPoint(axis math.Vector2D) (math.Vector2D, int) {
-	currentMaxProj := gmath.Inf(-1)
-	bestVertex := math.ZeroVec2D
+func (polygon *Polygon) GetSupportingPoint(axis neonMath.Vector2D) (neonMath.Vector2D, int) {
+	currentMaxProj := math.Inf(-1)
+	bestVertex := neonMath.ZeroVec2D
 	vertexID := 0
 
 	for id, v := range polygon.Vertices {
@@ -29,25 +29,25 @@ func (polygon *Polygon) GetSupportingPoint(axis math.Vector2D) (math.Vector2D, i
 }
 
 // DetermineSupportingEdge determines the edge furthest along a specific axis, in essence the specific edge, also returns how "parallel" the edge's normal is with the provided normal
-func (polygon *Polygon) DetermineSupportingEdge(axis math.Vector2D) ([]int, float64) {
+func (polygon *Polygon) DetermineSupportingEdge(axis neonMath.Vector2D) ([]int, float64) {
 
 	_, vertexID := polygon.GetSupportingPoint(axis)
 	v := polygon.Vertices[vertexID]
 	A := polygon.Vertices[polygon.Edges[vertexID][0]]
-	normalA := math.ComputeOutwardsNormal(A, v, polygon.State.CentroidPosition)
+	normalA := neonMath.ComputeOutwardsNormal(A, v, polygon.State.CentroidPosition)
 	B := polygon.Vertices[polygon.Edges[vertexID][1]]
-	normalB := math.ComputeOutwardsNormal(B, v, polygon.State.CentroidPosition)
+	normalB := neonMath.ComputeOutwardsNormal(B, v, polygon.State.CentroidPosition)
 
 	// There are two possible other vertices that can connect to this one, we determine which one is significant by comparing dot products
-	if gmath.Abs(normalA.Dot(axis)) >= gmath.Abs(normalB.Dot(axis)) {
-		return []int{vertexID, polygon.Edges[vertexID][0]}, gmath.Abs(normalA.Dot(axis))
+	if math.Abs(normalA.Dot(axis)) >= math.Abs(normalB.Dot(axis)) {
+		return []int{vertexID, polygon.Edges[vertexID][0]}, math.Abs(normalA.Dot(axis))
 	}
-	return []int{vertexID, polygon.Edges[vertexID][1]}, gmath.Abs(normalB.Dot(axis))
+	return []int{vertexID, polygon.Edges[vertexID][1]}, math.Abs(normalB.Dot(axis))
 }
 
 // PolyVerticesOutside takes a "line" (2 points) and a normal and returns all points of the polygon that lie outside this line, in the direction anti-parallel to the normal
 // Note: the function assumes that the vertices are in the "world frame"
-func (polygon *Polygon) PolyVerticesOutside(line [2]math.Vector2D, normal math.Vector2D) []int {
+func (polygon *Polygon) PolyVerticesOutside(line [2]neonMath.Vector2D, normal neonMath.Vector2D) []int {
 	var outside []int
 
 	for i, v := range polygon.Vertices {
@@ -62,7 +62,7 @@ func (polygon *Polygon) PolyVerticesOutside(line [2]math.Vector2D, normal math.V
 
 // AxisProjection returns the projection interval of a polygon onto an axis
 // Note that the projections are in "world coordinates"
-func (polygon *Polygon) AxisProjection(axis math.Vector2D) []float64 {
+func (polygon *Polygon) AxisProjection(axis neonMath.Vector2D) []float64 {
 	// We need to first determine the supporting points along the axis perpendicular to the provided axis
 	axis = axis.Normalise()
 	supLeft, _ := polygon.GetSupportingPoint(axis)
@@ -83,26 +83,26 @@ func projectionsOverlap(projectionA, projectionB []float64) (bool, float64) {
 		return false, 0.0
 	}
 
-	return true, gmath.Min(projectionA[1], projectionB[1]) - gmath.Max(projectionA[0], projectionB[0])
+	return true, math.Min(projectionA[1], projectionB[1]) - math.Max(projectionA[0], projectionB[0])
 }
 
 // satSinglePolygon just checks if polyB intersects polyA
-func satSinglePolygon(polyA Polygon, polyB Polygon) math.Vector2D {
-	mtv := math.BigVec2D
+func satSinglePolygon(polyA Polygon, polyB Polygon) neonMath.Vector2D {
+	mtv := neonMath.BigVec2D
 
 	for vertex, edges := range polyA.Edges {
 		for _, edge := range edges {
-			worldVertex := polyA.Vertices[vertex].Add(polyA.State.CentroidPosition)                     // worldVertex refers to the world coordinates of the vertex
-			worldEdgeV := polyA.Vertices[edge].Add(polyA.State.CentroidPosition)                        // worldEdgeV is the world coordinates of the other vertex that defines this edge
-			normal := math.ComputeOutwardsNormal(worldEdgeV, worldVertex, polyA.State.CentroidPosition) // normal is just the normal vector associated with this edge
+			worldVertex := polyA.Vertices[vertex].Add(polyA.State.CentroidPosition)                         // worldVertex refers to the world coordinates of the vertex
+			worldEdgeV := polyA.Vertices[edge].Add(polyA.State.CentroidPosition)                            // worldEdgeV is the world coordinates of the other vertex that defines this edge
+			normal := neonMath.ComputeOutwardsNormal(worldEdgeV, worldVertex, polyA.State.CentroidPosition) // normal is just the normal vector associated with this edge
 
 			projectedAxisPolyb := polyB.AxisProjection(normal)
 			projectedAxisPolya := polyA.AxisProjection(normal)
 
 			if intersects, overlap := projectionsOverlap(projectedAxisPolya, projectedAxisPolyb); !intersects {
-				return math.ZeroVec2D
+				return neonMath.ZeroVec2D
 			} else {
-				mtv = math.Min(mtv, normal.Scale(overlap))
+				mtv = neonMath.Min(mtv, normal.Scale(overlap))
 			}
 		}
 	}
@@ -132,15 +132,15 @@ func (polygon *Polygon) MapOutofWorldSpace() {
 
 // SAT determines if two polygons are intersecting and computes the corresponding MTV
 // Note that the MTV ALWAYS POINTS FROM A TO B
-func SAT(polyA Polygon, polyB Polygon) math.Vector2D {
+func SAT(polyA Polygon, polyB Polygon) neonMath.Vector2D {
 	// Get both the potential minimum translation vectors
 	mtvForB := satSinglePolygon(polyA, polyB)
 	mtvForA := satSinglePolygon(polyB, polyA)
 
 	// Actually figure out which one to return
 	// looks like there is a separating axis, hence: no collision
-	if mtvForB == math.ZeroVec2D || mtvForA == math.ZeroVec2D {
-		return math.ZeroVec2D
+	if mtvForB == neonMath.ZeroVec2D || mtvForA == neonMath.ZeroVec2D {
+		return neonMath.ZeroVec2D
 	} else {
 		if mtvForB.Length() <= mtvForA.Length() {
 			return mtvForB

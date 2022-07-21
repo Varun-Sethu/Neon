@@ -1,4 +1,4 @@
-package math
+package neonMath
 
 // Matrix2 is a 2x2 square matrix
 type Matrix2 struct {

@@ -1,10 +1,10 @@
 package entities
 
-import "Neon/engine/math"
+import neonMath "Neon/engine/math"
 
 // simple utility functions
 
-func unsetVec(slice []math.Vector2D, s int) []math.Vector2D {
+func unsetVec(slice []neonMath.Vector2D, s int) []neonMath.Vector2D {
 	return append(slice[:s], slice[s+1:]...)
 }
 

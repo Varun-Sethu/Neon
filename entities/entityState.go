@@ -1,10 +1,9 @@
 package entities
 
 import (
-	"Neon/engine/math"
+	neonMath "Neon/engine/math"
 	"Neon/entities/meshes"
-
-	gMath "math"
+	"math"
 )
 
 // Entity is simply just a 2d object that the physics engine can act on
@@ -16,9 +15,9 @@ type Entity struct {
 // Refers the the current state of an entity, important for physical calculations
 type EntityState struct {
 	// Motion quantities
-	Velocity         math.Vector2D
+	Velocity         neonMath.Vector2D
 	AngularVelocity  float64 // Angular velocity is of the form: (0, 0, w)
-	CentroidPosition math.Vector2D
+	CentroidPosition neonMath.Vector2D
 
 	// Inertial stuff
 	Mass              float64
@@ -28,7 +27,7 @@ type EntityState struct {
 }
 
 // NewEntity creates a completely brand new entity given a meshType and the set of information that defines that mesh
-func (entity *Entity) NewEntity(meshType meshes.MeshType, meshDefinition []math.Vector2D) {
+func (entity *Entity) NewEntity(meshType meshes.MeshType, meshDefinition []neonMath.Vector2D) {
 	switch meshType {
 	case meshes.MeshPolygon:
 		break
@@ -39,7 +38,7 @@ func (entity *Entity) NewEntity(meshType meshes.MeshType, meshDefinition []math.
 
 // ApplyImpulse just applies an impulse to the state,
 // Note application point is assumed to be outside the actual polygon, as such all vectors corresponding to position are relative to (0, 0) and not the centroid
-func (e *EntityState) ApplyImpulse(impulse math.Vector2D, applicationPoint math.Vector2D) {
+func (e *EntityState) ApplyImpulse(impulse neonMath.Vector2D, applicationPoint neonMath.Vector2D) {
 	if e.NoKinetic {
 		return
 	}
@@ -47,9 +46,28 @@ func (e *EntityState) ApplyImpulse(impulse math.Vector2D, applicationPoint math.
 	// Actually apply the impulse
 	e.Velocity = e.Velocity.Add(impulse.Scale(1.0 / e.Mass))
 
-	if applicationPoint != math.ZeroVec2D {
+	if applicationPoint != neonMath.ZeroVec2D {
 		e.AngularVelocity += applicationPoint.Sub(e.CentroidPosition).Normalise().CrossMag(impulse.Normalise()) * impulse.Length() / e.RotationalInertia
 	}
+}
+
+// ShiftOffset moves the centroid of the entityState by offset, returns true if the centroid was shifted
+func (e *EntityState) ShiftCentroid(offset neonMath.Vector2D) bool {
+	if e.NoKinetic {
+		return false
+	}
+
+	e.CentroidPosition = e.CentroidPosition.Add(offset)
+	return true
+}
+
+// RetrievePhysicalData fetches the physical data of the polygon, note that if the polygon is not kinetic then we say it has "infinite mass" and "infinite moment of inertia"
+func (e *EntityState) RetrievePhysicalData() (float64, float64) {
+	if e.NoKinetic {
+		return math.Inf(1), math.Inf(1)
+	}
+
+	return e.Mass, e.RotationalInertia
 }
 
 // NextTimeStep computes the next infinitesimal timestamp
@@ -60,13 +78,13 @@ func (polygon *Polygon) NextTimeStep(dt float64) {
 		return
 	}
 
-	e.CentroidPosition = e.CentroidPosition.Add(e.Velocity.Scale(math.Metre).Scale(dt))
+	e.CentroidPosition = e.CentroidPosition.Add(e.Velocity.Scale(neonMath.Metre).Scale(dt))
 
 	// Simple rotational utility
-	matrixRotate := func(d math.Vector2D, dTheta float64) math.Vector2D {
-		return math.Vector2D{
-			X: d.X*gMath.Cos(dTheta) - d.Y*gMath.Sin(dTheta),
-			Y: d.X*gMath.Sin(dTheta) + d.Y*gMath.Cos(dTheta),
+	matrixRotate := func(d neonMath.Vector2D, dTheta float64) neonMath.Vector2D {
+		return neonMath.Vector2D{
+			X: d.X*math.Cos(dTheta) - d.Y*math.Sin(dTheta),
+			Y: d.X*math.Sin(dTheta) + d.Y*math.Cos(dTheta),
 		}
 	}
 	// Compute the actual rotation of the entity

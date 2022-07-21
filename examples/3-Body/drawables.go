@@ -1,7 +1,7 @@
 package main
 
 import (
-	"Neon/engine/math"
+	neonMath "Neon/engine/math"
 	"Neon/entities"
 	"image/color"
 
@@ -10,7 +10,7 @@ import (
 )
 
 // Convert internal vector into a pixel vector
-func internalToPixelVec(v math.Vector2D) pixel.Vec {
+func internalToPixelVec(v neonMath.Vector2D) pixel.Vec {
 	return pixel.V(v.X, v.Y)
 }
 

@@ -27,8 +27,8 @@ func (receiver *PhysicsManager) AddCallback(callbacks ...func(manifold ContactMa
 	receiver.collisionCallbacks = append(receiver.collisionCallbacks, callbacks...)
 }
 
-// DetectCollisions identifies if any collisions are present and resolves them if they are
-func (receiver PhysicsManager) DetectCollisions() {
+// ResolveCollisions identifies if any collisions are present and resolves them if they are
+func (receiver PhysicsManager) ResolveCollisions() {
 	for i, a := range receiver.trackingEntities {
 		for _, b := range receiver.trackingEntities[i+1:] {
 			if collides, manifold := DetermineCollision(a, b); collides {
@@ -45,16 +45,15 @@ func (receiver PhysicsManager) DetectCollisions() {
 
 // NextTimeStep just progresses everything to the next timestep, just numerical integration.... Note: Every entitiy already has methods for progressing its state
 func (receiver *PhysicsManager) NextTimeStep(dt float64) {
-	// Progress
-	for _, e := range receiver.trackingEntities {
-		e.NextTimeStep(dt)
+	progressEntities := func() {
+		for _, e := range receiver.trackingEntities {
+			e.NextTimeStep(dt)
+		}
 	}
 
-	// Resolve collisions :D
-	receiver.DetectCollisions()
-
-	// Progress
-	for _, e := range receiver.trackingEntities {
-		e.NextTimeStep(dt)
-	}
+	// Progress entities, resolve entities and progress again :D
+	// The second progression is for smoother results
+	progressEntities()
+	receiver.ResolveCollisions()
+	progressEntities()
 }

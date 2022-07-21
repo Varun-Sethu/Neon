@@ -2,7 +2,7 @@ package main
 
 import (
 	"Neon/engine"
-	"Neon/engine/math"
+	neonMath "Neon/engine/math"
 	"Neon/entities"
 	"flag"
 	"image/color"
@@ -19,13 +19,13 @@ import (
 
 // just defines our polygons
 func definePolygons() []*entities.Polygon {
-	poly := entities.NewPolygon([]math.Vector2D{
-		{X: 0, Y: 100}, {X: 100, Y: 100}, {X: 100, Y: 0}, {X: 0, Y: 0},
+	poly := entities.NewPolygon([]neonMath.Vector2D{
+		{X: 10, Y: 110}, {X: 110, Y: 110}, {X: 110, Y: 10}, {X: 10, Y: 10},
 	})
 	poly.State.Mass = 2.0
 	poly.State.RotationalInertia = 2.0
 
-	specialPoly := entities.NewPolygon([]math.Vector2D{
+	specialPoly := entities.NewPolygon([]neonMath.Vector2D{
 		{X: 200, Y: 300}, {X: 300, Y: 300}, {X: 300, Y: 200}, {X: 200, Y: 200},
 	})
 	specialPoly.State.Mass = 2.0
@@ -34,23 +34,23 @@ func definePolygons() []*entities.Polygon {
 	poly.State.AngularVelocity = 1.0
 	specialPoly.State.AngularVelocity = 0.1
 
-	translationalPoly := entities.NewPolygon([]math.Vector2D{
+	translationalPoly := entities.NewPolygon([]neonMath.Vector2D{
 		{X: 600, Y: 300}, {X: 700, Y: 300}, {X: 700, Y: 200}, {X: 600, Y: 200},
 	})
 
-	translationalPoly.State.Mass = 2.0
+	translationalPoly.State.Mass = 2.1
 	translationalPoly.State.RotationalInertia = 2.0
-	translationalPoly.State.Velocity = math.Vector2D{X: -0.5}
-	poly.State.Velocity = math.Vector2D{X: 0.5, Y: 0.5}
+	translationalPoly.State.Velocity = neonMath.Vector2D{X: -0.5}
+	poly.State.Velocity = neonMath.Vector2D{X: 0.5, Y: 0.5}
 
 	return []*entities.Polygon{&poly, &specialPoly, &translationalPoly} // be freeeeeee to the heap
 }
 
 func defineCornerPolygons(height, width float64) []*entities.Polygon {
-	top := entities.NewPolygon([]math.Vector2D{{X: -100, Y: height - 1}, {X: width + 100, Y: height - 1}, {X: width + 100, Y: height + 1}, {X: -100, Y: height + 1}})
-	bottom := entities.NewPolygon([]math.Vector2D{{X: -100, Y: 1}, {X: width + 100, Y: 1}, {X: width + 100, Y: -200}, {X: -100, Y: -200}})
-	left := entities.NewPolygon([]math.Vector2D{{X: 0, Y: 1}, {X: 0, Y: height - 1}, {X: 1, Y: height - 1}, {X: 1, Y: 0}})
-	right := entities.NewPolygon([]math.Vector2D{{X: width + 1, Y: 1}, {X: width + 1, Y: height - 1}, {X: width - 1, Y: height - 1}, {X: width - 1, Y: 0}})
+	top := entities.NewPolygon([]neonMath.Vector2D{{X: -100, Y: height - 1}, {X: width + 100, Y: height - 1}, {X: width + 100, Y: height + 1}, {X: -100, Y: height + 1}})
+	bottom := entities.NewPolygon([]neonMath.Vector2D{{X: -100, Y: 1}, {X: width + 100, Y: 1}, {X: width + 100, Y: -200}, {X: -100, Y: -200}})
+	left := entities.NewPolygon([]neonMath.Vector2D{{X: -100, Y: 1}, {X: -100, Y: height - 1}, {X: 1, Y: height - 1}, {X: 1, Y: 0}})
+	right := entities.NewPolygon([]neonMath.Vector2D{{X: width + 100, Y: 1}, {X: width + 100, Y: height - 1}, {X: width - 1, Y: height - 1}, {X: width - 1, Y: 0}})
 
 	top.State.NoKinetic = true
 	bottom.State.NoKinetic = true
